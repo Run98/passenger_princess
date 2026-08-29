@@ -142,6 +142,11 @@ function closeModal() {
 
 function resetModals() {
   document.getElementById("voice-transcript").textContent = "";
+  document.getElementById("voice-transcript").style.display = "";
+  document.getElementById("voice-fallback-input").value = "";
+  document.getElementById("voice-fallback-input").style.display = "none";
+  document.getElementById("voice-record-btn").style.display = "";
+  document.getElementById("voice-status").textContent = "Tap the mic to start speaking.";
   document.getElementById("save-voice-btn").disabled = true;
   document.getElementById("photo-preview").style.display = "none";
   document.getElementById("photo-input").value = "";
@@ -190,6 +195,14 @@ function getRecognition() {
   return recognition;
 }
 
+function showTypeFallback(message) {
+  if (state.isRecording) stopVoiceRecording();
+  document.getElementById("voice-status").textContent = message;
+  document.getElementById("voice-transcript").style.display = "none";
+  document.getElementById("voice-record-btn").style.display = "none";
+  document.getElementById("voice-fallback-input").style.display = "block";
+}
+
 function startVoiceRecording() {
   const recognition = getRecognition();
   const btn = document.getElementById("voice-record-btn");
@@ -197,18 +210,7 @@ function startVoiceRecording() {
   const transcriptEl = document.getElementById("voice-transcript");
 
   if (!recognition) {
-    status.textContent = "Speech recognition isn't supported in this browser (try Chrome). You can type instead:";
-    if (!document.getElementById("voice-fallback-input")) {
-      const input = document.createElement("textarea");
-      input.id = "voice-fallback-input";
-      input.className = "transcript";
-      input.placeholder = "Type dictation text here...";
-      input.addEventListener("input", () => {
-        state.lastTranscript = input.value;
-        document.getElementById("save-voice-btn").disabled = !input.value.trim();
-      });
-      transcriptEl.replaceWith(input);
-    }
+    showTypeFallback("Speech recognition isn't supported in this browser (try Chrome). You can type instead:");
     return;
   }
 
@@ -226,8 +228,19 @@ function startVoiceRecording() {
     transcriptEl.textContent = transcript;
     document.getElementById("save-voice-btn").disabled = !transcript.trim();
   };
-  recognition.onerror = () => stopVoiceRecording();
-  recognition.start();
+  recognition.onerror = () => {
+    stopVoiceRecording();
+    showTypeFallback("Couldn't access the microphone. You can type instead:");
+  };
+  try {
+    recognition.start();
+  } catch (e) {
+    // start() can throw synchronously (e.g. mic permission denied) --
+    // never leave the modal stuck with no way forward.
+    state.isRecording = false;
+    btn.classList.remove("recording");
+    showTypeFallback("Couldn't start speech recognition. You can type instead:");
+  }
 }
 
 function stopVoiceRecording() {
@@ -240,6 +253,15 @@ function stopVoiceRecording() {
 document.getElementById("voice-record-btn").addEventListener("click", () => {
   if (state.isRecording) stopVoiceRecording();
   else startVoiceRecording();
+});
+
+document.getElementById("voice-type-instead-btn").addEventListener("click", () => {
+  showTypeFallback("Type your notes:");
+});
+
+document.getElementById("voice-fallback-input").addEventListener("input", (e) => {
+  state.lastTranscript = e.target.value;
+  document.getElementById("save-voice-btn").disabled = !e.target.value.trim();
 });
 
 document.getElementById("save-voice-btn").addEventListener("click", async () => {

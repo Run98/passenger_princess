@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Watch App — Demo Simulator</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #f5f6f8;
+    color: #111;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Helvetica, Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 32px 16px;
+    gap: 20px;
+  }
+  h1 { font-size: 16px; font-weight: 600; color: #333; margin: 0; }
+  .subtitle { font-size: 12px; color: #777; text-align: center; max-width: 360px; margin-top: -12px; }
+
+  .toolbar {
+    display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center;
+  }
+  .toolbar button, .toolbar a.btn {
+    font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 8px;
+    border: 1px solid #ccc; background: white; cursor: pointer; color: #111; text-decoration: none;
+  }
+  .toolbar button.primary, .toolbar a.btn.primary { background: #0a7cff; color: white; border-color: #0a7cff; }
+  .call-id { font-size: 12px; color: #555; font-family: ui-monospace, monospace; }
+
+  /* Watch bezel */
+  .watch {
+    width: 220px;
+    height: 268px;
+    background: #111;
+    border-radius: 46px;
+    padding: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 0 0 2px #333;
+    position: relative;
+  }
+  .crown {
+    position: absolute;
+    right: -6px; top: 90px;
+    width: 12px; height: 34px;
+    background: #444; border-radius: 4px;
+    box-shadow: 0 0 0 1px #222;
+  }
+  .side-btn {
+    position: absolute;
+    right: -5px; top: 140px;
+    width: 8px; height: 20px;
+    background: #333; border-radius: 3px;
+  }
+  .screen {
+    width: 100%; height: 100%;
+    background: #000;
+    border-radius: 36px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    color: #fff;
+    font-size: 12px;
+  }
+  .screen-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 8px 4px;
+  }
+  .screen-content::-webkit-scrollbar { width: 3px; }
+  .page-title {
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .page-dots {
+    display: flex; justify-content: center; gap: 5px; padding: 6px 0 8px;
+  }
+  .page-dots span {
+    width: 5px; height: 5px; border-radius: 50%; background: #444;
+  }
+  .page-dots span.active { background: #fff; }
+
+  /* Timestamp buttons */
+  .ts-btn {
+    display: flex; justify-content: space-between; align-items: center;
+    width: 100%;
+    background: #1c3a5e; color: #6cb2ff;
+    border: none; border-radius: 10px;
+    padding: 8px 10px; margin-bottom: 6px;
+    font-size: 11.5px; font-weight: 500;
+    cursor: pointer;
+  }
+  .ts-btn.done { background: #163d24; color: #59d97a; }
+  .ts-btn .check { display: none; }
+  .ts-btn.done .check { display: inline; }
+
+  /* Vitals steppers */
+  .vital-row { margin-bottom: 8px; }
+  .vital-label { font-size: 10.5px; color: #aaa; margin-bottom: 2px; }
+  .vital-control {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #1a1a1c; border-radius: 8px; padding: 3px 6px;
+  }
+  .vital-control button {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: none; background: #333; color: #6cb2ff; font-size: 14px;
+    line-height: 1; cursor: pointer;
+  }
+  .vital-value { font-size: 13px; font-weight: 600; min-width: 44px; text-align: center; }
+  .log-vitals-btn {
+    width: 100%; margin-top: 4px; padding: 8px;
+    background: #0a7cff; color: white; border: none; border-radius: 10px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+  }
+  .log-vitals-btn:disabled { background: #163d24; color: #59d97a; }
+
+  /* Dictation */
+  .dictation-view { display: flex; flex-direction: column; align-items: center; padding-top: 6px; gap: 8px; }
+  .mic-btn {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: none; background: #1a1a1c; color: #6cb2ff;
+    font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .mic-btn.recording { color: #ff4444; }
+  .mic-hint { font-size: 10.5px; color: #888; }
+  .transcript-box {
+    font-size: 10.5px; color: #59d97a; text-align: center; padding: 0 6px;
+    max-height: 70px; overflow-y: auto;
+  }
+
+  .log-panel {
+    width: 360px;
+    max-width: 90vw;
+    background: white;
+    border: 1px solid #e2e2e2;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 11.5px;
+    font-family: ui-monospace, monospace;
+    color: #444;
+    max-height: 140px;
+    overflow-y: auto;
+  }
+  .log-panel div { padding: 1px 0; }
+  .log-panel .ok { color: #1a7a3c; }
+</style>
+</head>
+<body>
+
+<h1>⌚ Watch App Simulator</h1>
+<p class="subtitle">
+  Stands in for the real watchOS + iPhone relay app (not buildable without Xcode — see <code>watch_app/README.md</code>).
+  Every tap here hits the same backend API a real paired iPhone would, so the web report on the other screen updates live.
+</p>
+
+<div class="toolbar">
+  <button id="new-call-btn" class="primary">+ New Demo Call</button>
+  <span class="call-id" id="call-id-label">no call yet</span>
+  <a id="open-report-link" class="btn" href="#" target="_blank" rel="noopener">Open Web Report ↗</a>
+</div>
+
+<div class="watch">
+  <div class="crown"></div>
+  <div class="side-btn"></div>
+  <div class="screen">
+    <div class="screen-content" id="screen-content"></div>
+    <div class="page-dots">
+      <span id="dot-0" class="active"></span>
+      <span id="dot-1"></span>
+      <span id="dot-2"></span>
+    </div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <button id="prev-page-btn">‹ Prev</button>
+  <button id="next-page-btn">Next ›</button>
+</div>
+
+<div class="log-panel" id="log-panel"></div>
+
+<script>
+const API_BASE = window.location.origin;
+let callId = null;
+let page = 0; // 0 = timestamps, 1 = vitals, 2 = dictation
+
+const TS_LABELS = ["Dispatch", "On Scene", "Patient Contact", "Transport", "Hospital Arrival"];
+const loggedTs = new Set();
+
+const vitals = { systolic: 150, diastolic: 95, hr: 110, spo2: 94, rr: 20, gcs: 15, glucose: 110 };
+const vitalRanges = {
+  systolic: [60, 220], diastolic: [30, 140], hr: [30, 220],
+  spo2: [50, 100], rr: [4, 50], gcs: [3, 15], glucose: [20, 500],
+};
+let vitalsLogged = false;
+
+let recognizing = false;
+let recognizer = null;
+let transcript = "";
+const CANNED_DICTATION = "58-year-old male, chief complaint chest pain, onset 20 minutes ago.";
+
+const screenContent = document.getElementById("screen-content");
+const logPanel = document.getElementById("log-panel");
+const callIdLabel = document.getElementById("call-id-label");
+const openReportLink = document.getElementById("open-report-link");
+
+function log(msg, ok) {
+  const div = document.createElement("div");
+  div.textContent = msg;
+  if (ok) div.className = "ok";
+  logPanel.prepend(div);
+}
+
+async function api(path, options = {}) {
+  const res = await fetch(API_BASE + path, {
+    headers: { "Content-Type": "application/json" },
+    ...options,
+  });
+  if (!res.ok) throw new Error(`API error ${res.status} on ${path}`);
+  return res.json();
+}
+
+async function newCall() {
+  loggedTs.clear();
+  vitalsLogged = false;
+  transcript = "";
+  const { call_id } = await api("/api/calls", {
+    method: "POST",
+    body: JSON.stringify({ chief_complaint: "chest pain", patient_age: 58, patient_sex: "male" }),
+  });
+  callId = call_id;
+  callIdLabel.textContent = `call: ${callId}`;
+  openReportLink.href = `/report/${callId}`;
+  log(`Created new call ${callId}`, true);
+  render();
+}
+
+async function tapTimestamp(label) {
+  if (!callId) return;
+  const recorded_at = new Date().toISOString();
+  await api(`/api/calls/${callId}/timestamps`, {
+    method: "POST",
+    body: JSON.stringify({ label, recorded_at }),
+  });
+  loggedTs.add(label);
+  log(`Timestamp sent: ${label}`, true);
+  render();
+}
+
+async function logVitals() {
+  if (!callId) return;
+  await api(`/api/calls/${callId}/vitals`, {
+    method: "POST",
+    body: JSON.stringify({
+      bp: `${vitals.systolic}/${vitals.diastolic}`,
+      hr: vitals.hr, spo2: vitals.spo2, rr: vitals.rr, gcs: vitals.gcs, glucose: vitals.glucose,
+    }),
+  });
+  vitalsLogged = true;
+  log(`Vitals sent: BP ${vitals.systolic}/${vitals.diastolic}, HR ${vitals.hr}, SpO2 ${vitals.spo2}`, true);
+  render();
+}
+
+async function sendDictation(text) {
+  if (!callId || !text.trim()) return;
+  await api(`/api/calls/${callId}/dictations`, {
+    method: "POST",
+    body: JSON.stringify({ text: text.trim() }),
+  });
+  log(`Dictation sent: "${text.trim()}"`, true);
+}
+
+function clampAdjust(key, delta) {
+  const [lo, hi] = vitalRanges[key];
+  vitals[key] = Math.min(hi, Math.max(lo, vitals[key] + delta));
+  render();
+}
+
+function renderTimestamps() {
+  screenContent.innerHTML = `<div class="page-title">Timestamps</div>`;
+  for (const label of TS_LABELS) {
+    const done = loggedTs.has(label);
+    const btn = document.createElement("button");
+    btn.className = "ts-btn" + (done ? " done" : "");
+    btn.innerHTML = `<span>${label}</span><span class="check">✓</span>`;
+    btn.onclick = () => tapTimestamp(label);
+    screenContent.appendChild(btn);
+  }
+}
+
+function renderVitals() {
+  screenContent.innerHTML = `<div class="page-title">Vitals</div>`;
+  const rows = [
+    ["BP Sys", "systolic"], ["BP Dia", "diastolic"], ["HR", "hr"],
+    ["SpO2", "spo2"], ["RR", "rr"], ["GCS", "gcs"], ["Glucose", "glucose"],
+  ];
+  for (const [label, key] of rows) {
+    const row = document.createElement("div");
+    row.className = "vital-row";
+    row.innerHTML = `
+      <div class="vital-label">${label}</div>
+      <div class="vital-control">
+        <button data-key="${key}" data-delta="-1">–</button>
+        <span class="vital-value">${vitals[key]}</span>
+        <button data-key="${key}" data-delta="1">+</button>
+      </div>`;
+    row.querySelectorAll("button").forEach(b => {
+      b.onclick = () => clampAdjust(b.dataset.key, parseInt(b.dataset.delta, 10));
+    });
+    screenContent.appendChild(row);
+  }
+  const logBtn = document.createElement("button");
+  logBtn.className = "log-vitals-btn";
+  logBtn.textContent = vitalsLogged ? "✓ Logged" : "Log Vitals";
+  logBtn.onclick = logVitals;
+  screenContent.appendChild(logBtn);
+}
+
+function renderDictation() {
+  screenContent.innerHTML = `
+    <div class="page-title">Dictation</div>
+    <div class="dictation-view">
+      <button class="mic-btn ${recognizing ? "recording" : ""}" id="mic-btn">${recognizing ? "■" : "🎙"}</button>
+      <div class="mic-hint">${recognizing ? "Listening..." : "Tap to dictate"}</div>
+      <div class="transcript-box" id="transcript-box">${transcript ? `Sent: "${transcript}"` : ""}</div>
+    </div>`;
+  document.getElementById("mic-btn").onclick = toggleDictation;
+}
+
+function finishDictation(text) {
+  if (!recognizing && transcript) return; // already finished
+  recognizing = false;
+  transcript = (text || "").trim() || CANNED_DICTATION;
+  sendDictation(transcript);
+  render();
+}
+
+function toggleDictation() {
+  if (recognizing) {
+    // Manual stop -- if speech recognition is live, let its onend/onresult
+    // handlers supply the final transcript; otherwise fall back now.
+    if (recognizer) {
+      recognizer.stop();
+    } else {
+      finishDictation(CANNED_DICTATION);
+    }
+    return;
+  }
+
+  recognizing = true;
+  render();
+
+  // Safety net: no matter what the Speech API does (denied permission,
+  // network failure, silently hangs), the demo must never get stuck on
+  // "Listening..." -- always resolve within a few seconds.
+  const safetyTimer = setTimeout(() => finishDictation(CANNED_DICTATION), 4000);
+
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) {
+    clearTimeout(safetyTimer);
+    setTimeout(() => finishDictation(CANNED_DICTATION), 1500);
+    return;
+  }
+
+  let heard = "";
+  try {
+    recognizer = new SpeechRec();
+    recognizer.continuous = true;
+    recognizer.interimResults = false;
+    recognizer.lang = "en-US";
+    recognizer.onresult = (e) => {
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        heard += e.results[i][0].transcript + " ";
+      }
+    };
+    recognizer.onerror = () => {
+      clearTimeout(safetyTimer);
+      recognizer = null;
+      finishDictation(heard || CANNED_DICTATION);
+    };
+    recognizer.onend = () => {
+      clearTimeout(safetyTimer);
+      recognizer = null;
+      finishDictation(heard || CANNED_DICTATION);
+    };
+    recognizer.start();
+  } catch (e) {
+    // start() can throw synchronously (e.g. mic permission denied) --
+    // fall back immediately rather than getting stuck "recording".
+    clearTimeout(safetyTimer);
+    recognizer = null;
+    finishDictation(CANNED_DICTATION);
+  }
+}
+
+function render() {
+  document.querySelectorAll(".page-dots span").forEach((d, i) => d.classList.toggle("active", i === page));
+  if (page === 0) renderTimestamps();
+  else if (page === 1) renderVitals();
+  else renderDictation();
+}
+
+document.getElementById("new-call-btn").onclick = newCall;
+document.getElementById("prev-page-btn").onclick = () => { page = (page + 2) % 3; render(); };
+document.getElementById("next-page-btn").onclick = () => { page = (page + 1) % 3; render(); };
+
+render();
+log("Ready. Click '+ New Demo Call' to begin.");
+</script>
+</body>
+</html>

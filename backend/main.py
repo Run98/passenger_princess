@@ -12,15 +12,21 @@ Run locally:
 Set ANTHROPIC_API_KEY in the environment to enable real AI suggestions;
 without it, suggestions fall back to the canned phrase bank automatically.
 """
+import sys
 import uuid
 from datetime import datetime
+from pathlib import Path
+
+# Vercel's Python runtime imports this file directly without adding its
+# directory to sys.path (unlike `uvicorn main:app` run from inside
+# backend/), so the sibling-module imports below would otherwise fail.
+sys.path.insert(0, str(Path(__file__).parent))
 
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from pathlib import Path
 
 from database import init_db, get_conn
 from narrative import build_draft_narrative

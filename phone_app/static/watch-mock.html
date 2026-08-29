@@ -357,8 +357,23 @@ function toggleDictation() {
 
   // Safety net: no matter what the Speech API does (denied permission,
   // network failure, silently hangs), the demo must never get stuck on
-  // "Listening..." -- always resolve within a few seconds.
-  const safetyTimer = setTimeout(() => finishDictation(CANNED_DICTATION), 4000);
+  // "Listening..." forever. But this must NOT double as a recording time
+  // limit -- a real user needs time to (a) respond to the browser's mic
+  // permission prompt and (b) say a full sentence. So the timer starts
+  // generous, and gets pushed further out once we have real evidence
+  // recognition is actually working (onstart / onresult firing).
+  let safetyTimer = null;
+  const armSafetyTimer = (ms) => {
+    clearTimeout(safetyTimer);
+    safetyTimer = setTimeout(() => {
+      if (recognizer) {
+        try { recognizer.abort(); } catch (e) { /* already stopped */ }
+      }
+      recognizer = null;
+      finishDictation(CANNED_DICTATION);
+    }, ms);
+  };
+  armSafetyTimer(15000); // covers a slow response to the permission prompt
 
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRec) {
@@ -373,10 +388,17 @@ function toggleDictation() {
     recognizer.continuous = true;
     recognizer.interimResults = false;
     recognizer.lang = "en-US";
+    recognizer.onstart = () => {
+      // Recognition is genuinely listening now -- give a full window for
+      // an actual sentence rather than the permission-prompt window.
+      armSafetyTimer(20000);
+    };
     recognizer.onresult = (e) => {
       for (let i = e.resultIndex; i < e.results.length; i++) {
         heard += e.results[i][0].transcript + " ";
       }
+      // Real speech is coming in -- extend a bit more in case they keep talking.
+      armSafetyTimer(8000);
     };
     recognizer.onerror = () => {
       clearTimeout(safetyTimer);

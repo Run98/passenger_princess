@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Field Reports</title>
+<link rel="stylesheet" href="/phone-static/style.css">
+</head>
+<body>
+  <div class="phone-frame">
+
+    <!-- Header, shared across screens -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="dot"></span>
+        <span id="header-title">Field Reports</span>
+      </div>
+      <div class="avatar">👤</div>
+    </header>
+
+    <!-- Screen 1: Dashboard -->
+    <section id="screen-dashboard" class="screen active">
+      <button id="new-call-btn" class="btn-primary full-width">+ New Field Interaction</button>
+      <div id="call-list" class="call-list"></div>
+    </section>
+
+    <!-- Screens 2/3: Field Recording (empty / populated) -->
+    <section id="screen-recording" class="screen">
+      <button id="generate-narrative-btn" class="btn-primary full-width" disabled>Generate PCR Narrative</button>
+      <div class="capture-row">
+        <button class="capture-btn" data-capture="voice"><span class="icon">🎙️</span>Voice</button>
+        <button class="capture-btn" data-capture="scribble"><span class="icon">✏️</span>Scribble</button>
+        <button class="capture-btn" data-capture="vitals"><span class="icon">❤️</span>Vitals</button>
+        <button class="capture-btn" data-capture="photo"><span class="icon">📷</span>Photo</button>
+      </div>
+      <div id="asset-list" class="asset-list">
+        <div class="empty-state">
+          <div class="plus-circle">+</div>
+          <p>No content yet.</p>
+          <p class="hint">Use a button above to add your first voice memo, scribble, vitals reading, or photo.</p>
+        </div>
+      </div>
+      <button id="back-to-dashboard-btn" class="btn-secondary full-width">← Back to Dashboard</button>
+    </section>
+
+    <!-- Screen 4: Prelim Report (review & edit) -->
+    <section id="screen-report" class="screen">
+      <div class="style-note">✨ Formatted to match your usual narrative style</div>
+
+      <div class="report-section">
+        <h3>Chief Complaint</h3>
+        <div class="ai-flag">✨ AI-drafted, tap to edit</div>
+        <textarea id="section-chief-complaint" class="report-textarea"></textarea>
+      </div>
+
+      <div class="report-section">
+        <h3>Assessment</h3>
+        <div class="ai-flag">✨ AI-drafted, tap to edit</div>
+        <textarea id="section-assessment" class="report-textarea"></textarea>
+      </div>
+
+      <div class="report-section">
+        <h3>Treatment</h3>
+        <div class="ai-flag">✨ AI-drafted, tap to edit</div>
+        <textarea id="section-treatment" class="report-textarea"></textarea>
+      </div>
+
+      <button id="save-report-btn" class="btn-secondary full-width">Save Draft</button>
+      <button id="continue-to-sign-btn" class="btn-primary full-width">Continue to Sign</button>
+    </section>
+
+    <!-- Screen 5: Approve & Sign -->
+    <section id="screen-sign" class="screen">
+      <p class="sign-statement">By signing, I confirm this report accurately reflects care provided.</p>
+      <div class="signature-pad-wrap">
+        <canvas id="signature-canvas"></canvas>
+        <div id="signature-placeholder" class="signature-placeholder">Sign here</div>
+      </div>
+      <button id="clear-signature-btn" class="btn-secondary full-width">Clear</button>
+      <button id="submit-signature-btn" class="btn-primary full-width">Submit</button>
+    </section>
+
+  </div>
+
+  <!-- Modals for capture flows -->
+  <div id="modal-overlay" class="modal-overlay">
+    <div id="modal-vitals" class="modal">
+      <h3>Log Vitals</h3>
+      <div class="vitals-grid">
+        <label>BP Systolic <input type="number" id="v-sys" value="120"></label>
+        <label>BP Diastolic <input type="number" id="v-dia" value="80"></label>
+        <label>HR <input type="number" id="v-hr" value="80"></label>
+        <label>SpO2 <input type="number" id="v-spo2" value="98"></label>
+        <label>RR <input type="number" id="v-rr" value="16"></label>
+        <label>GCS <input type="number" id="v-gcs" value="15"></label>
+        <label>Glucose <input type="number" id="v-glucose" value="100"></label>
+      </div>
+      <button class="btn-secondary" data-close-modal>Cancel</button>
+      <button class="btn-primary" id="save-vitals-btn">Save</button>
+    </div>
+
+    <div id="modal-voice" class="modal">
+      <h3>Voice Memo</h3>
+      <p id="voice-status" class="hint">Tap the mic to start speaking.</p>
+      <button id="voice-record-btn" class="mic-btn">🎙️</button>
+      <p id="voice-transcript" class="transcript"></p>
+      <button class="btn-secondary" data-close-modal>Cancel</button>
+      <button class="btn-primary" id="save-voice-btn" disabled>Save</button>
+    </div>
+
+    <div id="modal-scribble" class="modal">
+      <h3>Scribble — Injury Diagram</h3>
+      <canvas id="scribble-canvas" class="scribble-canvas"></canvas>
+      <button class="btn-secondary" id="clear-scribble-btn">Clear</button>
+      <button class="btn-secondary" data-close-modal>Cancel</button>
+      <button class="btn-primary" id="save-scribble-btn">Save</button>
+    </div>
+
+    <div id="modal-photo" class="modal">
+      <h3>Photo</h3>
+      <input type="file" id="photo-input" accept="image/*" capture="environment">
+      <img id="photo-preview" class="photo-preview" style="display:none;">
+      <button class="btn-secondary" data-close-modal>Cancel</button>
+      <button class="btn-primary" id="save-photo-btn" disabled>Save</button>
+    </div>
+  </div>
+
+  <script src="/phone-static/app.js"></script>
+</body>
+</html>

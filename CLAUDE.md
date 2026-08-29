@@ -24,7 +24,7 @@ Both the watch and the phone app talk to the same Python/FastAPI backend. The wa
 ## Tech Stack
 
 - **Backend**: Python, FastAPI (async, so AI narrative generation doesn't block the UI)
-- **Database**: SQLite (demo-appropriate; not a production-scale choice)
+- **Database**: Postgres (via `DATABASE_URL` — Neon, Vercel Postgres, Supabase, etc. all work). Switched from an initial SQLite version specifically to support deployment on Vercel, whose serverless functions have no persistent local disk between invocations.
 - **Watch app**: Native watchOS (Swift), paired with an iPhone relay app
 - **Phone app**: for this demo, built as a mobile-styled web app (HTML/CSS/JS) served by the same FastAPI backend, so it's runnable and demoable without an Xcode build. A native Swift/SwiftUI version is the eventual target (see "Native phone app" below) but is not required for this demo to function.
 - **Speech-to-text**: Apple's on-device Speech framework on the watch; the phone app's demo build uses the browser's Web Speech API (Chrome) as a stand-in for on-device dictation, since it's running as a web app for now. Both are free and don't depend on a cloud STT service.

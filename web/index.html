@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EMT Report Assistant</title>
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>EMT Report Assistant</h1>
+    <div id="call-picker">
+      <label for="call-select">Call:</label>
+      <select id="call-select"></select>
+      <button id="new-call-btn">+ New Demo Call</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="call-summary" class="card">
+      <h2>Call Summary</h2>
+      <div id="summary-content">Select a call to begin.</div>
+    </section>
+
+    <section id="narrative-editor" class="card">
+      <h2>Report Narrative</h2>
+      <p class="hint">Start typing — a gray suggestion will appear inline. Press <kbd>Tab</kbd> to accept it.</p>
+      <div class="editor-wrap">
+        <div id="ghost-overlay" aria-hidden="true"></div>
+        <textarea id="narrative-text" spellcheck="false" placeholder="Report narrative will be auto-drafted here once a call is selected..."></textarea>
+      </div>
+      <div id="suggestion-source"></div>
+      <div class="actions">
+        <button id="load-draft-btn">Load Auto-Draft</button>
+        <button id="save-btn">Save</button>
+        <button id="finalize-btn" class="primary">Finalize Report</button>
+      </div>
+      <div id="save-status"></div>
+    </section>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+:root {
+  --blue: #1565c0;
+  --gray: #6b7280;
+  --bg: #f5f6f8;
+  --card-bg: #ffffff;
+  --border: #e0e2e6;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  margin: 0;
+  color: #1a1a1a;
+}
+
+header {
+  background: var(--card-bg);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+header h1 {
+  font-size: 18px;
+  margin: 0;
+}
+
+#call-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+main {
+  max-width: 780px;
+  margin: 24px auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.card h2 {
+  margin-top: 0;
+  font-size: 16px;
+}
+
+#summary-content { font-size: 14px; line-height: 1.6; }
+#summary-content .row { margin-bottom: 6px; }
+#summary-content .label { color: var(--gray); margin-right: 6px; }
+
+.hint { color: var(--gray); font-size: 13px; margin-top: -6px; }
+
+.editor-wrap {
+  position: relative;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+#ghost-overlay, #narrative-text {
+  width: 100%;
+  min-height: 220px;
+  padding: 12px;
+  border-radius: 8px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font: inherit;
+  line-height: inherit;
+}
+
+#ghost-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  color: transparent;
+  pointer-events: none;
+  border: 1px solid transparent;
+  z-index: 1;
+}
+
+#ghost-overlay .ghost {
+  color: #a6acb8;
+}
+
+#narrative-text {
+  position: relative;
+  z-index: 2;
+  background: transparent;
+  border: 1px solid var(--border);
+  resize: vertical;
+}
+
+#suggestion-source {
+  font-size: 12px;
+  color: var(--gray);
+  margin-top: 4px;
+  height: 16px;
+}
+
+.actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+button {
+  border: 1px solid var(--border);
+  background: #f0f1f3;
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button.primary {
+  background: var(--blue);
+  color: white;
+  border-color: var(--blue);
+}
+
+button:hover { opacity: 0.9; }
+
+#save-status {
+  font-size: 13px;
+  color: var(--gray);
+  margin-top: 8px;
+  height: 16px;
+}

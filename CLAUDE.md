@@ -21,7 +21,7 @@ Data flows one direction for capture (watch → iPhone → backend) and the web 
 ## Tech Stack
 
 - **Backend**: Python, FastAPI (async, so AI suggestion calls and sync don't block the UI)
-- **Database**: SQLite (demo-appropriate; not a production-scale choice)
+- **Database**: Postgres (via `DATABASE_URL` — Neon, Vercel Postgres, Supabase, etc. all work). Switched from an initial SQLite version specifically to support deployment on Vercel, whose serverless functions have no persistent local disk between invocations.
 - **Watch/iPhone app**: Native watchOS + iOS (Swift), paired app relaying to the FastAPI backend
 - **Speech-to-text**: Apple's on-device Speech framework (free, offline-capable, no cloud dependency — chosen for demo reliability). *Future upgrade path: Deepgram Nova-3 Medical, if this moves beyond demo/prototype, for better clinical vocabulary accuracy.*
 - **AI text suggestions**: Claude API (Haiku, for low latency) generating context-aware inline ghost-text suggestions as the EMT types in the web app

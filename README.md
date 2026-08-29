@@ -8,20 +8,36 @@ full design rationale and scope.
 ## What's in this repo
 
 ```
-backend/                       FastAPI server, SQLite storage, auto-draft narrative, AI ghost-text suggestions
+backend/                       FastAPI server, Postgres storage, auto-draft narrative, AI ghost-text suggestions
 web/                            Web frontend (report review + editor UI)
 web/static/watch-mock.html      Browser-based watch app simulator (see below) -- no Xcode needed
 watch_app/                      Swift source scaffold for the real watchOS app + iPhone relay app
 requirements.txt                Python dependencies
+vercel.json                     Vercel deployment config (see "Deploying to Vercel" below)
 CLAUDE.md                       Project design doc / build guide
 ```
 
 ## Running the web demo (backend + browser)
 
-This is the part you can run right now without any Apple hardware.
+This is the part you can run right now without any Apple hardware. It
+needs a Postgres database to store call data — Vercel's serverless
+functions have no persistent local disk, so this demo (like the eventual
+production version) uses a real database instead of a local SQLite file.
+
+For local development, the easiest option is Postgres via Homebrew:
+
+```bash
+brew install postgresql@16
+brew services start postgresql@16
+createdb emt_demo1
+```
+
+Or point `DATABASE_URL` at any hosted Postgres (Neon, Vercel Postgres,
+Supabase, etc.) — free tiers work fine for this.
 
 ```bash
 pip install -r requirements.txt --break-system-packages   # or use a venv
+export DATABASE_URL="postgresql://localhost:5432/emt_demo1"   # adjust user/host as needed
 cd backend
 python seed_demo.py          # loads the reference chest-pain demo call
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
@@ -71,6 +87,32 @@ iPhone relay app, but **is not a buildable Xcode project by itself** — see
 `watch_app/README.md` for how to drop these files into a new Xcode watchOS
 project. This requires a Mac with Xcode and, to run on a physical Apple
 Watch, an Apple Developer account.
+
+## Deploying to Vercel
+
+`vercel.json` routes every request to the single FastAPI app in
+`backend/main.py` (including static asset requests, which the app already
+serves itself via `StaticFiles`/`FileResponse` — no separate static
+hosting setup needed).
+
+1. Provision a Postgres database (Vercel Postgres, Neon, Supabase, etc. all
+   work — for serverless, prefer a **pooled** connection string if your
+   provider offers one, since each function invocation opens its own
+   connection).
+2. In the Vercel project settings, set the `DATABASE_URL` environment
+   variable to that connection string. Optionally set `ANTHROPIC_API_KEY`
+   too, for real AI ghost-text suggestions instead of the phrase-bank
+   fallback.
+3. Run the schema + seed once against that same database from your machine
+   (`DATABASE_URL=... python backend/seed_demo.py`), or just hit any
+   endpoint once — table creation is `CREATE TABLE IF NOT EXISTS`, so the
+   first request against a fresh database creates the schema.
+4. From the repo root: `vercel login` (interactive, opens a browser), then
+   `vercel --prod`.
+
+Note: `watch-mock.html` and the web app both call the backend via relative
+`fetch()` paths, so they work unmodified once deployed — no hardcoded
+`localhost` URLs to change.
 
 ## Demo scenario
 

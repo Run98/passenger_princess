@@ -8,11 +8,12 @@ full design rationale and scope.
 ## What's in this repo
 
 ```
-backend/            FastAPI server, SQLite storage, auto-draft narrative, AI ghost-text suggestions
-web/                 Web frontend (report review + editor UI)
-watch_app/           Swift source scaffold for the watchOS app + iPhone relay app
-requirements.txt     Python dependencies
-CLAUDE.md            Project design doc / build guide
+backend/                       FastAPI server, SQLite storage, auto-draft narrative, AI ghost-text suggestions
+web/                            Web frontend (report review + editor UI)
+web/static/watch-mock.html      Browser-based watch app simulator (see below) -- no Xcode needed
+watch_app/                      Swift source scaffold for the real watchOS app + iPhone relay app
+requirements.txt                Python dependencies
+CLAUDE.md                       Project design doc / build guide
 ```
 
 ## Running the web demo (backend + browser)
@@ -42,7 +43,28 @@ export ANTHROPIC_API_KEY=your-key-here
 ```
 then restart the server.
 
-## Building the watch app
+## Demoing the watch app (no Xcode needed)
+
+With the backend running (see above), open
+**http://localhost:8000/static/watch-mock.html** in a second browser tab.
+This is a watch-styled simulator of the real Swift app — same three
+screens (Timestamps, Vitals, Dictation) — that hits the same backend API
+a paired iPhone would, so anything you do here shows up live in the web
+report.
+
+Click **+ New Demo Call**, then:
+- **Timestamps** — tap through Dispatch, On Scene, Patient Contact, Transport, Hospital Arrival.
+- **Vitals** — adjust BP/HR/SpO2/RR/GCS/glucose with the +/− steppers, then **Log Vitals**.
+- **Dictation** — tap the mic. If your browser grants microphone access it transcribes live via the Web Speech API; otherwise (or if recognition fails/times out) it falls back to a scripted demo line after a few seconds, so the demo never gets stuck on "Listening...".
+
+Click **Open Web Report ↗** at any point to see the call you just built in
+the real web app — click **Load Auto-Draft** there to watch the narrative
+assemble from what was just "captured."
+
+This is a stand-in for presentations, not the real product. The real
+watchOS + iPhone relay app requires an actual build — see the next section.
+
+## Building the real watch app
 
 `watch_app/` contains the Swift source for the watchOS capture app and the
 iPhone relay app, but **is not a buildable Xcode project by itself** — see
@@ -52,10 +74,11 @@ Watch, an Apple Developer account.
 
 ## Demo scenario
 
-The seeded call follows the reference walkthrough in `CLAUDE.md`: a
-58-year-old male with chest pain, from dispatch through hospital handoff,
-exercising every core feature (timestamps, vitals, voice dictation,
-auto-draft, AI ghost-text editing) in one story.
+The seeded call (and the watch simulator's default "New Demo Call") follows
+the reference walkthrough in `CLAUDE.md`: a 58-year-old male with chest
+pain, from dispatch through hospital handoff, exercising every core
+feature (timestamps, vitals, voice dictation, auto-draft, AI ghost-text
+editing) in one story.
 
 ## Current scope
 

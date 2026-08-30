@@ -112,7 +112,18 @@ main {
 .actions {
   margin-top: 12px;
   display: flex;
+  align-items: center;
   gap: 10px;
+}
+
+.format-label { font-size: 14px; color: var(--gray); }
+
+#narrative-format-select {
+  border: 1px solid var(--border);
+  background: white;
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 14px;
 }
 
 button {

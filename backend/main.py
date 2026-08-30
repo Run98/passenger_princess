@@ -168,7 +168,7 @@ def add_dictation(call_id: str, dictation: DictationIn):
 # ---------- Narrative draft + editing ----------
 
 @app.get("/api/calls/{call_id}/draft")
-def get_draft(call_id: str):
+def get_draft(call_id: str, format: str = "standard"):
     with get_conn() as conn:
         call = _get_call_or_404(call_id, conn)
         timestamps = [dict(r) for r in conn.execute(
@@ -180,7 +180,7 @@ def get_draft(call_id: str):
         dictations = [dict(r) for r in conn.execute(
             "SELECT text FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
-    draft = build_draft_narrative(call, timestamps, vitals, dictations)
+    draft = build_draft_narrative(call, timestamps, vitals, dictations, format=format)
     return {"draft": draft}
 
 

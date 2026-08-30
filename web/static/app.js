@@ -71,7 +71,8 @@ function renderSummary(data) {
 
 async function loadDraft() {
   if (!state.callId) return;
-  const { draft } = await api(`/api/calls/${state.callId}/draft`);
+  const format = document.getElementById("narrative-format-select").value;
+  const { draft } = await api(`/api/calls/${state.callId}/draft?format=${format}`);
   els.textarea.value = draft;
   renderGhost("");
 }

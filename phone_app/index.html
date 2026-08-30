@@ -137,7 +137,12 @@
 
     <div id="modal-photo" class="modal">
       <h3>Photo</h3>
-      <input type="file" id="photo-input" accept="image/*" capture="environment">
+      <div class="photo-source-row">
+        <button class="btn-secondary" id="take-photo-btn" type="button">📷 Take Photo</button>
+        <button class="btn-secondary" id="choose-photo-btn" type="button">🖼 Choose from Library</button>
+      </div>
+      <input type="file" id="photo-input-camera" accept="image/*" capture="environment" style="display:none;">
+      <input type="file" id="photo-input-library" accept="image/*" style="display:none;">
       <img id="photo-preview" class="photo-preview" style="display:none;">
       <button class="btn-secondary" data-close-modal>Cancel</button>
       <button class="btn-primary" id="save-photo-btn" disabled>Save</button>

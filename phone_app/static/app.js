@@ -222,7 +222,8 @@ function resetModals() {
   document.getElementById("voice-status").textContent = "Tap the mic to start speaking.";
   document.getElementById("save-voice-btn").disabled = true;
   document.getElementById("photo-preview").style.display = "none";
-  document.getElementById("photo-input").value = "";
+  document.getElementById("photo-input-camera").value = "";
+  document.getElementById("photo-input-library").value = "";
   document.getElementById("save-photo-btn").disabled = true;
   ["v-sys", "v-dia", "v-hr", "v-spo2", "v-rr", "v-gcs", "v-glucose"].forEach(id => {
     document.getElementById(id).value = "";
@@ -411,8 +412,12 @@ document.getElementById("save-scribble-btn").addEventListener("click", async () 
 });
 
 // --- Photo ---
+// Two separate file inputs so both paths are always available: some
+// mobile browsers treat a single <input capture> as camera-only and
+// hide the library option, so "Take Photo" and "Choose from Library"
+// each get their own input rather than sharing one.
 
-document.getElementById("photo-input").addEventListener("change", (e) => {
+function handlePhotoFile(e) {
   const file = e.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -424,6 +429,16 @@ document.getElementById("photo-input").addEventListener("change", (e) => {
     document.getElementById("save-photo-btn").disabled = false;
   };
   reader.readAsDataURL(file);
+}
+
+document.getElementById("photo-input-camera").addEventListener("change", handlePhotoFile);
+document.getElementById("photo-input-library").addEventListener("change", handlePhotoFile);
+
+document.getElementById("take-photo-btn").addEventListener("click", () => {
+  document.getElementById("photo-input-camera").click();
+});
+document.getElementById("choose-photo-btn").addEventListener("click", () => {
+  document.getElementById("photo-input-library").click();
 });
 
 document.getElementById("save-photo-btn").addEventListener("click", async () => {
@@ -516,4 +531,12 @@ document.getElementById("submit-signature-btn").addEventListener("click", async 
 
 // ---------- Init ----------
 
-loadDashboard();
+// Supports a direct hand-off from the watch simulator: opening
+// /?open=<call_id> jumps straight into that call's Field Recording
+// screen instead of leaving the user to find it in the Dashboard list.
+const requestedCallId = new URLSearchParams(window.location.search).get("open");
+if (requestedCallId) {
+  openCall(requestedCallId);
+} else {
+  loadDashboard();
+}

@@ -418,3 +418,5 @@ body {
 }
 
 .photo-preview { width: 100%; border-radius: 10px; margin: 10px 0; }
+.photo-source-row { display: flex; gap: 8px; }
+.photo-source-row .btn-secondary { flex: 1; margin-top: 0; }

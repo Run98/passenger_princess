@@ -202,7 +202,10 @@ let vitalsLogged = false;
 let recognizing = false;
 let recognizer = null;
 let transcript = "";
-const CANNED_DICTATION = "58-year-old male, chief complaint chest pain, onset 20 minutes ago.";
+let callComplaint = "unspecified complaint";
+function cannedDictation() {
+  return `Patient reports symptoms consistent with ${callComplaint}, onset per report.`;
+}
 
 const screenContent = document.getElementById("screen-content");
 const logPanel = document.getElementById("log-panel");
@@ -226,17 +229,27 @@ async function api(path, options = {}) {
 }
 
 async function newCall() {
+  const complaint = prompt("Chief complaint for this scenario (e.g. diabetic emergency, opioid overdose, heart attack):");
+  if (complaint === null) return; // cancelled
+  const ageRaw = prompt("Patient age (optional):");
+  const sex = prompt("Patient sex (male/female/other, optional):");
+
   loggedTs.clear();
   vitalsLogged = false;
   transcript = "";
+  callComplaint = complaint.trim() || "unspecified complaint";
   const { call_id } = await api("/api/calls", {
     method: "POST",
-    body: JSON.stringify({ chief_complaint: "chest pain", patient_age: 58, patient_sex: "male" }),
+    body: JSON.stringify({
+      chief_complaint: callComplaint,
+      patient_age: ageRaw && ageRaw.trim() ? Number(ageRaw.trim()) : null,
+      patient_sex: sex && sex.trim() ? sex.trim() : null,
+    }),
   });
   callId = call_id;
   callIdLabel.textContent = `call: ${callId}`;
   openReportLink.href = `/report/${callId}`;
-  log(`Created new call ${callId}`, true);
+  log(`Created new call ${callId} (${callComplaint})`, true);
   render();
 }
 
@@ -335,7 +348,7 @@ function renderDictation() {
 function finishDictation(text) {
   if (!recognizing && transcript) return; // already finished
   recognizing = false;
-  transcript = (text || "").trim() || CANNED_DICTATION;
+  transcript = (text || "").trim() || cannedDictation();
   sendDictation(transcript);
   render();
 }
@@ -347,7 +360,7 @@ function toggleDictation() {
     if (recognizer) {
       recognizer.stop();
     } else {
-      finishDictation(CANNED_DICTATION);
+      finishDictation(cannedDictation());
     }
     return;
   }
@@ -370,7 +383,7 @@ function toggleDictation() {
         try { recognizer.abort(); } catch (e) { /* already stopped */ }
       }
       recognizer = null;
-      finishDictation(CANNED_DICTATION);
+      finishDictation(cannedDictation());
     }, ms);
   };
   armSafetyTimer(15000); // covers a slow response to the permission prompt
@@ -378,7 +391,7 @@ function toggleDictation() {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRec) {
     clearTimeout(safetyTimer);
-    setTimeout(() => finishDictation(CANNED_DICTATION), 1500);
+    setTimeout(() => finishDictation(cannedDictation()), 1500);
     return;
   }
 
@@ -403,12 +416,12 @@ function toggleDictation() {
     recognizer.onerror = () => {
       clearTimeout(safetyTimer);
       recognizer = null;
-      finishDictation(heard || CANNED_DICTATION);
+      finishDictation(heard || cannedDictation());
     };
     recognizer.onend = () => {
       clearTimeout(safetyTimer);
       recognizer = null;
-      finishDictation(heard || CANNED_DICTATION);
+      finishDictation(heard || cannedDictation());
     };
     recognizer.start();
   } catch (e) {
@@ -416,7 +429,7 @@ function toggleDictation() {
     // fall back immediately rather than getting stuck "recording".
     clearTimeout(safetyTimer);
     recognizer = null;
-    finishDictation(CANNED_DICTATION);
+    finishDictation(cannedDictation());
   }
 }
 

@@ -160,9 +160,17 @@ els.loadDraftBtn.addEventListener("click", loadDraft);
 els.saveBtn.addEventListener("click", () => saveNarrative(false));
 els.finalizeBtn.addEventListener("click", () => saveNarrative(true));
 els.newCallBtn.addEventListener("click", async () => {
+  const complaint = prompt("Chief complaint for this new call (e.g. diabetic emergency, opioid overdose, heart attack):");
+  if (complaint === null) return; // cancelled
+  const ageRaw = prompt("Patient age (optional):");
+  const sex = prompt("Patient sex (male/female/other, optional):");
   const { call_id } = await api("/api/calls", {
     method: "POST",
-    body: JSON.stringify({ chief_complaint: "chest pain", patient_age: 58, patient_sex: "male" }),
+    body: JSON.stringify({
+      chief_complaint: complaint.trim() || "unspecified complaint",
+      patient_age: ageRaw && ageRaw.trim() ? Number(ageRaw.trim()) : null,
+      patient_sex: sex && sex.trim() ? sex.trim() : null,
+    }),
   });
   await refreshCallList(call_id);
 });

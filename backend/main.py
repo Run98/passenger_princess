@@ -86,6 +86,10 @@ class SuggestionIn(BaseModel):
     current_text: str
 
 
+class ArchiveIn(BaseModel):
+    archived: bool
+
+
 # ---------- Call lifecycle ----------
 
 @app.post("/api/calls")
@@ -102,7 +106,12 @@ def create_call(call: NewCall):
 @app.get("/api/calls")
 def list_calls():
     with get_conn() as conn:
-        rows = conn.execute("SELECT id, chief_complaint, patient_age, patient_sex, finalized, created_at FROM calls ORDER BY created_at DESC").fetchall()
+        # Archived (curated) examples surface first, so a reviewer sees
+        # them immediately rather than hunting through scratch/test calls.
+        rows = conn.execute(
+            "SELECT id, chief_complaint, patient_age, patient_sex, finalized, archived, created_at "
+            "FROM calls ORDER BY archived DESC, created_at DESC"
+        ).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -113,20 +122,72 @@ def _get_call_or_404(call_id: str, conn):
     return dict(row)
 
 
+@app.put("/api/calls/{call_id}/archive")
+def set_archived(call_id: str, body: ArchiveIn):
+    """Mark/unmark a call as a curated example, independent of finalized."""
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute("UPDATE calls SET archived = ? WHERE id = ?", (int(body.archived), call_id))
+    return {"status": "ok"}
+
+
+@app.delete("/api/calls/{call_id}")
+def delete_call(call_id: str):
+    """Scrap a scratch/test call and everything captured under it."""
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        for table in ("dictations", "vitals", "timestamps"):
+            conn.execute(f"DELETE FROM {table} WHERE call_id = ?", (call_id,))
+        conn.execute("DELETE FROM calls WHERE id = ?", (call_id,))
+    return {"status": "ok"}
+
+
 @app.get("/api/calls/{call_id}")
 def get_call(call_id: str):
     with get_conn() as conn:
         call = _get_call_or_404(call_id, conn)
         timestamps = [dict(r) for r in conn.execute(
-            "SELECT label, recorded_at FROM timestamps WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, label, recorded_at FROM timestamps WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
         vitals = [dict(r) for r in conn.execute(
-            "SELECT bp, hr, spo2, rr, gcs, glucose, recorded_at FROM vitals WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, bp, hr, spo2, rr, gcs, glucose, recorded_at FROM vitals WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
         dictations = [dict(r) for r in conn.execute(
-            "SELECT text, recorded_at FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, text, recorded_at FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
         return {"call": call, "timestamps": timestamps, "vitals": vitals, "dictations": dictations}
+
+
+@app.delete("/api/calls/{call_id}/{record_type}/{record_id}")
+def delete_record(call_id: str, record_type: str, record_id: int):
+    """Remove a single captured item (timestamp, vitals reading, or voice
+    memo) without deleting the whole call."""
+    table = {"timestamps": "timestamps", "vitals": "vitals", "dictations": "dictations"}.get(record_type)
+    if table is None:
+        raise HTTPException(status_code=400, detail="Unknown record type")
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute(f"DELETE FROM {table} WHERE id = ? AND call_id = ?", (record_id, call_id))
+    return {"status": "ok"}
+
+
+@app.put("/api/calls/{call_id}/dictations/{dictation_id}")
+def edit_dictation(call_id: str, dictation_id: int, body: DictationIn):
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute("UPDATE dictations SET text = ? WHERE id = ? AND call_id = ?", (body.text, dictation_id, call_id))
+    return {"status": "ok"}
+
+
+@app.put("/api/calls/{call_id}/vitals/{vitals_id}")
+def edit_vitals(call_id: str, vitals_id: int, body: VitalsIn):
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute(
+            "UPDATE vitals SET bp = ?, hr = ?, spo2 = ?, rr = ?, gcs = ?, glucose = ? WHERE id = ? AND call_id = ?",
+            (body.bp, body.hr, body.spo2, body.rr, body.gcs, body.glucose, vitals_id, call_id),
+        )
+    return {"status": "ok"}
 
 
 # ---------- Capture endpoints (called by the iPhone relay app) ----------

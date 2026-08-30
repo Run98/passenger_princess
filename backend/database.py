@@ -27,8 +27,14 @@ CREATE TABLE IF NOT EXISTS calls (
     patient_sex TEXT,
     narrative TEXT DEFAULT '',
     finalized INTEGER DEFAULT 0,
+    archived INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- archived marks a call as a curated example (e.g. for reviewers to see
+-- a realistic filled-out scenario) as distinct from finalized -- a call
+-- can be finalized AND archived, or finalized and not.
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS archived INTEGER DEFAULT 0;
 
 CREATE TABLE IF NOT EXISTS timestamps (
     id SERIAL PRIMARY KEY,

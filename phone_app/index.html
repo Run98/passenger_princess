@@ -29,6 +29,14 @@
 
     <!-- Screens 2/3: Field Recording (empty / populated) -->
     <section id="screen-recording" class="screen">
+      <div class="format-picker">
+        <label for="narrative-format-select">Narrative format</label>
+        <select id="narrative-format-select">
+          <option value="standard">Standard (Chief Complaint / Assessment / Treatment)</option>
+          <option value="soap">SOAP</option>
+          <option value="chart">CHART</option>
+        </select>
+      </div>
       <button id="generate-narrative-btn" class="btn-primary full-width" disabled>Generate PCR Narrative</button>
       <div class="capture-row">
         <button class="capture-btn" data-capture="voice"><span class="icon">🎙️</span>Voice</button>
@@ -50,23 +58,7 @@
     <section id="screen-report" class="screen">
       <div class="style-note">✨ Formatted to match your usual narrative style</div>
 
-      <div class="report-section">
-        <h3>Chief Complaint</h3>
-        <div class="ai-flag">✨ AI-drafted, tap to edit</div>
-        <textarea id="section-chief-complaint" class="report-textarea"></textarea>
-      </div>
-
-      <div class="report-section">
-        <h3>Assessment</h3>
-        <div class="ai-flag">✨ AI-drafted, tap to edit</div>
-        <textarea id="section-assessment" class="report-textarea"></textarea>
-      </div>
-
-      <div class="report-section">
-        <h3>Treatment</h3>
-        <div class="ai-flag">✨ AI-drafted, tap to edit</div>
-        <textarea id="section-treatment" class="report-textarea"></textarea>
-      </div>
+      <div id="report-sections-container"></div>
 
       <button id="save-report-btn" class="btn-secondary full-width">Save Draft</button>
       <button id="continue-to-sign-btn" class="btn-primary full-width">Continue to Sign</button>

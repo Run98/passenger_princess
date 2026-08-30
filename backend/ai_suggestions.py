@@ -13,7 +13,7 @@ import os
 import json
 import asyncio
 from phrase_bank import get_fallback_suggestion
-from narrative import build_structured_fallback
+from narrative import build_structured_fallback, NARRATIVE_FORMATS
 
 MODEL = "claude-haiku-4-5-20251001"
 TIMEOUT_SECONDS = 2.5
@@ -100,16 +100,18 @@ async def get_suggestion(current_text: str, call_context: dict) -> dict:
     return {"suggestion": get_fallback_suggestion(current_text), "source": "fallback"}
 
 
-def _build_narrative_prompt(assets: dict) -> str:
+def _build_narrative_prompt(assets: dict, sections: list) -> str:
+    section_list = ", ".join(sections)
+    keys_json = ", ".join(f'"{s}"' for s in sections)
     return f"""You are helping an EMT draft a patient care report from field-captured data. \
-Given the assets below, produce a structured narrative with exactly three sections: \
-chief_complaint, assessment, and treatment. Use standard EMS documentation language. \
-Where you infer or paraphrase something not explicitly stated (e.g. converting a casual \
-quote into clinical language, or inferring a timestamp), keep it clearly grounded in the \
-provided data -- do not invent details that aren't supported by the assets.
+Given the assets below, produce a structured narrative with exactly these sections, in this \
+documentation style: {section_list}. Use standard EMS documentation language appropriate to \
+that style. Where you infer or paraphrase something not explicitly stated (e.g. converting a \
+casual quote into clinical language, or inferring a timestamp), keep it clearly grounded in \
+the provided data -- do not invent details that aren't supported by the assets.
 
-Respond with ONLY a JSON object with exactly these keys: "chief_complaint", "assessment", \
-"treatment". No markdown, no explanation, just the JSON object.
+Respond with ONLY a JSON object with exactly these keys: {keys_json}. \
+No markdown, no explanation, just the JSON object.
 
 Patient: {assets.get('patient_age', '?')}-year-old {assets.get('patient_sex', '')}
 Chief complaint (reported): {assets.get('chief_complaint', 'unspecified')}
@@ -125,12 +127,17 @@ Other captured assets: {assets.get('scribbles_photos', 'none')}
 
 
 async def get_structured_narrative(call: dict, timestamps: list, vitals: list,
-                                    dictations: list, scribbles: list, photos: list) -> dict:
+                                    dictations: list, scribbles: list, photos: list,
+                                    format: str = "standard") -> dict:
     """
-    Returns {"chief_complaint": str, "assessment": str, "treatment": str, "source": "ai"|"fallback"}
+    Returns {"format": str, "sections": {label: str, ...}, "source": "ai"|"fallback"}
     Falls back to a template-based split if the AI call is unavailable or fails,
     per the "demo reliability over completeness" principle in CLAUDE.md.
     """
+    if format not in NARRATIVE_FORMATS:
+        format = "standard"
+    sections = NARRATIVE_FORMATS[format]
+
     client = _get_client()
     if client is not None:
         try:
@@ -146,12 +153,12 @@ async def get_structured_narrative(call: dict, timestamps: list, vitals: list,
                 "dictations": " | ".join(d["text"] for d in dictations) or "none recorded",
                 "scribbles_photos": f"{len(scribbles)} scribble(s), {len(photos)} photo(s)",
             }
-            prompt = _build_narrative_prompt(assets)
+            prompt = _build_narrative_prompt(assets, sections)
             response = await asyncio.wait_for(
                 asyncio.to_thread(
                     client.messages.create,
                     model=MODEL,
-                    max_tokens=500,
+                    max_tokens=600,
                     messages=[{"role": "user", "content": prompt}],
                 ),
                 timeout=NARRATIVE_TIMEOUT_SECONDS,
@@ -162,12 +169,10 @@ async def get_structured_narrative(call: dict, timestamps: list, vitals: list,
                 raw = raw.strip("`")
                 raw = raw[raw.find("{"):raw.rfind("}") + 1]
             parsed = json.loads(raw)
-            if all(k in parsed for k in ("chief_complaint", "assessment", "treatment")):
-                parsed["source"] = "ai"
-                return parsed
+            if all(s in parsed for s in sections):
+                return {"format": format, "sections": {s: parsed[s] for s in sections}, "source": "ai"}
         except Exception:
             pass
 
-    fallback = build_structured_fallback(call, timestamps, vitals, dictations, scribbles, photos)
-    fallback["source"] = "fallback"
-    return fallback
+    fallback_sections = build_structured_fallback(call, timestamps, vitals, dictations, scribbles, photos, format=format)
+    return {"format": format, "sections": fallback_sections, "source": "fallback"}

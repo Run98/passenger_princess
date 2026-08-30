@@ -12,6 +12,7 @@ Run locally:
 Set ANTHROPIC_API_KEY in the environment to enable real AI suggestions;
 without it, suggestions fall back to the canned phrase bank automatically.
 """
+import json
 import sys
 import uuid
 from datetime import datetime
@@ -97,9 +98,8 @@ class NarrativeIn(BaseModel):
 
 
 class StructuredNarrativeIn(BaseModel):
-    chief_complaint: str
-    assessment: str
-    treatment: str
+    format: str
+    sections: dict[str, str]
 
 
 class SuggestionIn(BaseModel):
@@ -300,9 +300,10 @@ def save_narrative(call_id: str, body: NarrativeIn):
 
 
 @app.post("/api/calls/{call_id}/generate-narrative")
-async def generate_narrative(call_id: str):
-    """Phone app: generate the structured (chief complaint / assessment /
-    treatment) narrative from every captured asset so far."""
+async def generate_narrative(call_id: str, format: str = "standard"):
+    """Phone app: generate the structured narrative from every captured
+    asset so far, in the chosen documentation style (see
+    narrative.NARRATIVE_FORMATS -- standard/SOAP/CHART)."""
     with get_conn() as conn:
         call = _get_call_or_404(call_id, conn)
         timestamps = [dict(r) for r in conn.execute(
@@ -321,13 +322,13 @@ async def generate_narrative(call_id: str):
             "SELECT id FROM photos WHERE call_id = ?", (call_id,)
         ).fetchall()]
 
-    result = await get_structured_narrative(call, timestamps, vitals, dictations, scribbles, photos)
+    result = await get_structured_narrative(call, timestamps, vitals, dictations, scribbles, photos, format=format)
 
     with get_conn() as conn:
         conn.execute(
-            "UPDATE calls SET narrative_chief_complaint = ?, narrative_assessment = ?, "
-            "narrative_treatment = ?, narrative_generated = 1, status = 'in_review' WHERE id = ?",
-            (result["chief_complaint"], result["assessment"], result["treatment"], call_id),
+            "UPDATE calls SET narrative_format = ?, narrative_sections = ?, "
+            "narrative_generated = 1, status = 'in_review' WHERE id = ?",
+            (result["format"], json.dumps(result["sections"]), call_id),
         )
     return result
 
@@ -338,9 +339,8 @@ def save_structured_narrative(call_id: str, body: StructuredNarrativeIn):
     with get_conn() as conn:
         _get_call_or_404(call_id, conn)
         conn.execute(
-            "UPDATE calls SET narrative_chief_complaint = ?, narrative_assessment = ?, "
-            "narrative_treatment = ? WHERE id = ?",
-            (body.chief_complaint, body.assessment, body.treatment, call_id),
+            "UPDATE calls SET narrative_format = ?, narrative_sections = ? WHERE id = ?",
+            (body.format, json.dumps(body.sections), call_id),
         )
     return {"status": "ok"}
 

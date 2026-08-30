@@ -7,6 +7,7 @@ const state = {
   isRecording: false,
   lastTranscript: "",
   lastPhotoDataUrl: null,
+  reportFormat: "standard",
 };
 
 const ASSET_ICONS = { voice: "🎙️", vitals: "❤️", scribble: "✏️", photo: "📷" };
@@ -101,15 +102,45 @@ async function refreshAssets() {
 
 document.getElementById("back-to-dashboard-btn").addEventListener("click", loadDashboard);
 
+function escapeHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+function renderReportSections(format, sections) {
+  state.reportFormat = format;
+  const container = document.getElementById("report-sections-container");
+  container.innerHTML = "";
+  for (const [label, text] of Object.entries(sections)) {
+    const section = document.createElement("div");
+    section.className = "report-section";
+    section.innerHTML = `
+      <h3>${escapeHtml(label)}</h3>
+      <div class="ai-flag">✨ AI-drafted, tap to edit</div>
+      <textarea class="report-textarea" data-section-label="${escapeHtml(label)}"></textarea>
+    `;
+    section.querySelector("textarea").value = text;
+    container.appendChild(section);
+  }
+}
+
+function gatherReportSections() {
+  const sections = {};
+  document.querySelectorAll("#report-sections-container .report-textarea").forEach(ta => {
+    sections[ta.dataset.sectionLabel] = ta.value;
+  });
+  return sections;
+}
+
 document.getElementById("generate-narrative-btn").addEventListener("click", async () => {
   const btn = document.getElementById("generate-narrative-btn");
+  const format = document.getElementById("narrative-format-select").value;
   btn.disabled = true;
   btn.textContent = "Generating...";
   try {
-    const result = await api(`/api/calls/${state.callId}/generate-narrative`, { method: "POST" });
-    document.getElementById("section-chief-complaint").value = result.chief_complaint;
-    document.getElementById("section-assessment").value = result.assessment;
-    document.getElementById("section-treatment").value = result.treatment;
+    const result = await api(`/api/calls/${state.callId}/generate-narrative?format=${format}`, { method: "POST" });
+    renderReportSections(result.format, result.sections);
     showScreen("report", "Prelim Report");
   } finally {
     btn.textContent = "Generate PCR Narrative";
@@ -365,22 +396,14 @@ document.getElementById("save-photo-btn").addEventListener("click", async () => 
 document.getElementById("save-report-btn").addEventListener("click", async () => {
   await api(`/api/calls/${state.callId}/structured-narrative`, {
     method: "PUT",
-    body: JSON.stringify({
-      chief_complaint: document.getElementById("section-chief-complaint").value,
-      assessment: document.getElementById("section-assessment").value,
-      treatment: document.getElementById("section-treatment").value,
-    }),
+    body: JSON.stringify({ format: state.reportFormat, sections: gatherReportSections() }),
   });
 });
 
 document.getElementById("continue-to-sign-btn").addEventListener("click", async () => {
   await api(`/api/calls/${state.callId}/structured-narrative`, {
     method: "PUT",
-    body: JSON.stringify({
-      chief_complaint: document.getElementById("section-chief-complaint").value,
-      assessment: document.getElementById("section-assessment").value,
-      treatment: document.getElementById("section-treatment").value,
-    }),
+    body: JSON.stringify({ format: state.reportFormat, sections: gatherReportSections() }),
   });
   showScreen("sign", "Approve & Sign");
   setupSignatureCanvas();

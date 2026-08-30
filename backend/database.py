@@ -26,14 +26,21 @@ CREATE TABLE IF NOT EXISTS calls (
     patient_age INTEGER,
     patient_sex TEXT,
     narrative TEXT DEFAULT '',
-    narrative_chief_complaint TEXT DEFAULT '',
-    narrative_assessment TEXT DEFAULT '',
-    narrative_treatment TEXT DEFAULT '',
+    narrative_format TEXT DEFAULT 'standard',
+    narrative_sections TEXT DEFAULT '{}',
     narrative_generated INTEGER DEFAULT 0,
     status TEXT DEFAULT 'draft',
     finalized INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- narrative_format/narrative_sections replaced the old fixed
+-- narrative_chief_complaint/assessment/treatment columns so any
+-- documentation style (standard/SOAP/CHART) can be stored, not just a
+-- hardcoded 3-section shape. ADD COLUMN IF NOT EXISTS so this upgrades an
+-- existing production table in place rather than requiring a fresh one.
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS narrative_format TEXT DEFAULT 'standard';
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS narrative_sections TEXT DEFAULT '{}';
 
 CREATE TABLE IF NOT EXISTS timestamps (
     id SERIAL PRIMARY KEY,

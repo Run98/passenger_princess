@@ -79,6 +79,28 @@
 
   <!-- Modals for capture flows -->
   <div id="modal-overlay" class="modal-overlay">
+    <div id="modal-newcall" class="modal">
+      <h3>New Field Interaction</h3>
+      <div class="newcall-grid">
+        <label>Chief Complaint
+          <input type="text" id="nc-complaint" placeholder="e.g. diabetic emergency">
+        </label>
+        <label>Patient Age
+          <input type="number" id="nc-age" placeholder="e.g. 42">
+        </label>
+        <label>Patient Sex
+          <select id="nc-sex">
+            <option value="">Select…</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+      </div>
+      <button class="btn-secondary" data-close-modal>Cancel</button>
+      <button class="btn-primary" id="create-call-btn">Start Interaction</button>
+    </div>
+
     <div id="modal-vitals" class="modal">
       <h3>Log Vitals</h3>
       <div class="vitals-grid">

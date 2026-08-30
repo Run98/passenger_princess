@@ -124,7 +124,40 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
+}
+.call-card.archived {
+  border-color: var(--purple);
+  background: #f8f7ff;
+}
+
+.call-card-main { cursor: pointer; flex: 1; min-width: 0; }
+.call-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.archived-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--purple);
+  margin-bottom: 3px;
+}
+
+.icon-btn {
+  border: 1px solid var(--border);
+  background: #fff;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  font-size: 14px;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .call-card .title { font-weight: 600; font-size: 14px; }
@@ -206,7 +239,21 @@ body {
 .asset-icon.scribble { background: #ece2ff; }
 .asset-icon.photo { background: #e2fbf1; }
 
+.asset-card .asset-body { flex: 1; min-width: 0; }
+.asset-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
 .asset-card .asset-label { font-size: 13px; font-weight: 600; }
+.asset-card .asset-timestamp {
+  font-size: 11px;
+  color: var(--gray);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
 .asset-card .asset-detail { font-size: 11px; color: var(--gray); margin-top: 1px; }
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--gray); }
@@ -289,6 +336,32 @@ body {
 }
 .modal.active { display: block; }
 .modal h3 { margin-top: 0; }
+
+.newcall-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.newcall-grid label {
+  font-size: 12px;
+  color: var(--gray);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.newcall-grid input,
+.newcall-grid select {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--text);
+  background: #fff;
+}
 
 .vitals-grid {
   display: grid;

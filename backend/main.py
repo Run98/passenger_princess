@@ -102,6 +102,10 @@ class StructuredNarrativeIn(BaseModel):
     sections: dict[str, str]
 
 
+class ArchiveIn(BaseModel):
+    archived: bool
+
+
 class SuggestionIn(BaseModel):
     call_id: str
     current_text: str
@@ -123,9 +127,12 @@ def create_call(call: NewCall):
 @app.get("/api/calls")
 def list_calls():
     with get_conn() as conn:
+        # Archived (curated) examples surface first, so a reviewer opening
+        # the Dashboard sees them immediately rather than having to hunt
+        # through scratch/test calls.
         rows = conn.execute(
-            "SELECT id, chief_complaint, patient_age, patient_sex, status, finalized, created_at "
-            "FROM calls ORDER BY created_at DESC"
+            "SELECT id, chief_complaint, patient_age, patient_sex, status, finalized, archived, created_at "
+            "FROM calls ORDER BY archived DESC, created_at DESC"
         ).fetchall()
         return [dict(r) for r in rows]
 
@@ -135,6 +142,27 @@ def _get_call_or_404(call_id: str, conn):
     if row is None:
         raise HTTPException(status_code=404, detail="Call not found")
     return dict(row)
+
+
+@app.put("/api/calls/{call_id}/archive")
+def set_archived(call_id: str, body: ArchiveIn):
+    """Mark/unmark a call as a curated example (see database.py's schema
+    comment on the archived column)."""
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute("UPDATE calls SET archived = ? WHERE id = ?", (int(body.archived), call_id))
+    return {"status": "ok"}
+
+
+@app.delete("/api/calls/{call_id}")
+def delete_call(call_id: str):
+    """Scrap a scratch/test call and everything captured under it."""
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        for table in ("dictations", "vitals", "timestamps", "scribbles", "photos", "signatures"):
+            conn.execute(f"DELETE FROM {table} WHERE call_id = ?", (call_id,))
+        conn.execute("DELETE FROM calls WHERE id = ?", (call_id,))
+    return {"status": "ok"}
 
 
 @app.get("/api/calls/{call_id}")

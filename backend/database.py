@@ -31,8 +31,15 @@ CREATE TABLE IF NOT EXISTS calls (
     narrative_generated INTEGER DEFAULT 0,
     status TEXT DEFAULT 'draft',
     finalized INTEGER DEFAULT 0,
+    archived INTEGER DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- archived marks a call as a curated example (e.g. for judges/reviewers
+-- to see realistic filled-out scenarios) as distinct from its workflow
+-- status (draft/in_review/signed) -- a call can be signed AND archived,
+-- or signed and NOT archived (a scratch/test run to be cleaned up later).
+ALTER TABLE calls ADD COLUMN IF NOT EXISTS archived INTEGER DEFAULT 0;
 
 -- narrative_format/narrative_sections replaced the old fixed
 -- narrative_chief_complaint/assessment/treatment columns so any

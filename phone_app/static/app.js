@@ -43,25 +43,56 @@ async function loadDashboard() {
   listEl.innerHTML = "";
   for (const call of calls) {
     const card = document.createElement("div");
-    card.className = "call-card";
+    card.className = "call-card" + (call.archived ? " archived" : "");
     const statusLabel = { draft: "Draft", in_review: "In Review", signed: "Signed" }[call.status] || call.status;
     card.innerHTML = `
-      <div>
+      <div class="call-card-main">
+        ${call.archived ? '<div class="archived-badge">📌 Example</div>' : ""}
         <div class="title">Call ${call.id}</div>
         <div class="subtitle">${call.chief_complaint || "no complaint set"}</div>
       </div>
-      <span class="status-pill status-${call.status}">${statusLabel}</span>
+      <div class="call-card-actions">
+        <span class="status-pill status-${call.status}">${statusLabel}</span>
+        <button class="icon-btn archive-toggle-btn" title="${call.archived ? "Remove from examples" : "Archive as example"}">${call.archived ? "📌" : "☆"}</button>
+        <button class="icon-btn delete-call-btn" title="Delete this call">🗑</button>
+      </div>
     `;
-    card.addEventListener("click", () => openCall(call.id));
+    card.querySelector(".call-card-main").addEventListener("click", () => openCall(call.id));
+    card.querySelector(".archive-toggle-btn").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      await api(`/api/calls/${call.id}/archive`, {
+        method: "PUT",
+        body: JSON.stringify({ archived: !call.archived }),
+      });
+      loadDashboard();
+    });
+    card.querySelector(".delete-call-btn").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete call ${call.id} (${call.chief_complaint || "no complaint set"})? This can't be undone.`)) return;
+      await api(`/api/calls/${call.id}`, { method: "DELETE" });
+      loadDashboard();
+    });
     listEl.appendChild(card);
   }
 }
 
-document.getElementById("new-call-btn").addEventListener("click", async () => {
+document.getElementById("new-call-btn").addEventListener("click", () => {
+  openModal("newcall");
+});
+
+document.getElementById("create-call-btn").addEventListener("click", async () => {
+  const complaint = document.getElementById("nc-complaint").value.trim();
+  const ageRaw = document.getElementById("nc-age").value.trim();
+  const sex = document.getElementById("nc-sex").value;
   const { call_id } = await api("/api/calls", {
     method: "POST",
-    body: JSON.stringify({ chief_complaint: "chest pain", patient_age: 58, patient_sex: "male" }),
+    body: JSON.stringify({
+      chief_complaint: complaint || "unspecified complaint",
+      patient_age: ageRaw ? Number(ageRaw) : null,
+      patient_sex: sex || null,
+    }),
   });
+  closeModal();
   openCall(call_id);
 });
 
@@ -92,12 +123,22 @@ async function refreshAssets() {
   listEl.innerHTML = assets.map(a => `
     <div class="asset-card">
       <div class="asset-icon ${a.type}">${ASSET_ICONS[a.type]}</div>
-      <div>
-        <div class="asset-label">${a.label}</div>
+      <div class="asset-body">
+        <div class="asset-label-row">
+          <div class="asset-label">${a.label}</div>
+          <div class="asset-timestamp">${formatTimestamp(a.recorded_at)}</div>
+        </div>
         <div class="asset-detail">${(a.detail || "").slice(0, 60)}</div>
       </div>
     </div>
   `).join("");
+}
+
+function formatTimestamp(isoString) {
+  if (!isoString) return "";
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return "";
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 }
 
 document.getElementById("back-to-dashboard-btn").addEventListener("click", loadDashboard);
@@ -156,6 +197,7 @@ const modals = {
   scribble: document.getElementById("modal-scribble"),
   vitals: document.getElementById("modal-vitals"),
   photo: document.getElementById("modal-photo"),
+  newcall: document.getElementById("modal-newcall"),
 };
 
 function openModal(name) {
@@ -185,6 +227,9 @@ function resetModals() {
   ["v-sys", "v-dia", "v-hr", "v-spo2", "v-rr", "v-gcs", "v-glucose"].forEach(id => {
     document.getElementById(id).value = "";
   });
+  document.getElementById("nc-complaint").value = "";
+  document.getElementById("nc-age").value = "";
+  document.getElementById("nc-sex").value = "";
   state.lastTranscript = "";
   state.lastPhotoDataUrl = null;
   if (state.isRecording) stopVoiceRecording();

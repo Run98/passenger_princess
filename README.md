@@ -51,10 +51,21 @@ app's Dashboard, showing the seeded demo call. Open it to see the five-screen
 flow:
 
 1. **Dashboard** — call list with Draft/In Review/Signed status.
-2. **Field Recording** — tap Voice, Scribble, Vitals, or Photo to add assets; each is listed individually and can be added more than once.
-3. **Generate PCR Narrative** — becomes enabled once at least one asset exists; produces a structured narrative (Chief Complaint / Assessment / Treatment).
+2. **Field Recording** — tap Voice, Scribble, Vitals, or Photo to add assets; each is listed individually and can be added more than once. Pick a **narrative format** here before generating (see below).
+3. **Generate PCR Narrative** — becomes enabled once at least one asset exists; produces a structured narrative in the chosen format.
 4. **Prelim Report** — review and edit the AI-drafted sections (flagged "AI-drafted, tap to edit").
 5. **Approve & Sign** — draw a signature and submit; the call's status becomes "Signed."
+
+### Narrative formats
+
+The **Narrative format** dropdown on Field Recording picks the documentation
+style used when generating: **Standard** (Chief Complaint / Assessment /
+Treatment, this app's original 3-section shape), **SOAP** (Subjective /
+Objective / Assessment / Plan), or **CHART** (Chief Complaint / History /
+Assessment / Rx / Transport) — SOAP and CHART are standard EMS
+documentation methods some systems require for consistency across a crew.
+The Prelim Report screen renders however many sections the chosen format
+needs.
 
 ### Enabling real AI narrative generation
 

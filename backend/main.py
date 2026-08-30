@@ -173,10 +173,10 @@ def get_call(call_id: str):
             "SELECT label, recorded_at FROM timestamps WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
         vitals = [dict(r) for r in conn.execute(
-            "SELECT bp, hr, spo2, rr, gcs, glucose, recorded_at FROM vitals WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, bp, hr, spo2, rr, gcs, glucose, recorded_at FROM vitals WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
         dictations = [dict(r) for r in conn.execute(
-            "SELECT text, recorded_at FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, text, recorded_at FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall()]
         scribbles = [dict(r) for r in conn.execute(
             "SELECT id, image_data, caption, recorded_at FROM scribbles WHERE call_id = ? ORDER BY recorded_at", (call_id,)
@@ -273,28 +273,61 @@ def get_assets(call_id: str):
         _get_call_or_404(call_id, conn)
         items = []
         for i, row in enumerate(conn.execute(
-            "SELECT text, recorded_at FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, text, recorded_at FROM dictations WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall(), start=1):
-            items.append({"type": "voice", "index": i, "label": f"Voice memo {i}",
+            items.append({"type": "voice", "id": row["id"], "index": i, "label": f"Voice memo {i}",
                           "detail": row["text"], "recorded_at": row["recorded_at"]})
         for i, row in enumerate(conn.execute(
-            "SELECT bp, hr, spo2, rr, gcs, glucose, recorded_at FROM vitals WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, bp, hr, spo2, rr, gcs, glucose, recorded_at FROM vitals WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall(), start=1):
-            detail = ", ".join(f"{k.upper()}: {v}" for k, v in dict(row).items() if v is not None and k != "recorded_at")
-            items.append({"type": "vitals", "index": i, "label": f"Vitals {i}",
+            row = dict(row)
+            detail = ", ".join(f"{k.upper()}: {v}" for k, v in row.items() if v is not None and k not in ("recorded_at", "id"))
+            items.append({"type": "vitals", "id": row["id"], "index": i, "label": f"Vitals {i}",
                           "detail": detail, "recorded_at": row["recorded_at"]})
         for i, row in enumerate(conn.execute(
-            "SELECT caption, recorded_at FROM scribbles WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, caption, recorded_at FROM scribbles WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall(), start=1):
-            items.append({"type": "scribble", "index": i, "label": f"Scribble {i}",
+            items.append({"type": "scribble", "id": row["id"], "index": i, "label": f"Scribble {i}",
                           "detail": row["caption"] or "injury diagram", "recorded_at": row["recorded_at"]})
         for i, row in enumerate(conn.execute(
-            "SELECT caption, recorded_at FROM photos WHERE call_id = ? ORDER BY recorded_at", (call_id,)
+            "SELECT id, caption, recorded_at FROM photos WHERE call_id = ? ORDER BY recorded_at", (call_id,)
         ).fetchall(), start=1):
-            items.append({"type": "photo", "index": i, "label": f"Photo {i}",
+            items.append({"type": "photo", "id": row["id"], "index": i, "label": f"Photo {i}",
                           "detail": row["caption"] or "photo", "recorded_at": row["recorded_at"]})
         items.sort(key=lambda x: x["recorded_at"])
         return items
+
+
+@app.delete("/api/calls/{call_id}/assets/{asset_type}/{asset_id}")
+def delete_asset(call_id: str, asset_type: str, asset_id: int):
+    """Remove a single captured item (vitals reading, voice memo, scribble,
+    or photo) without deleting the whole call."""
+    table = {"voice": "dictations", "vitals": "vitals", "scribble": "scribbles", "photo": "photos"}.get(asset_type)
+    if table is None:
+        raise HTTPException(status_code=400, detail="Unknown asset type")
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute(f"DELETE FROM {table} WHERE id = ? AND call_id = ?", (asset_id, call_id))
+    return {"status": "ok"}
+
+
+@app.put("/api/calls/{call_id}/dictations/{dictation_id}")
+def edit_dictation(call_id: str, dictation_id: int, body: DictationIn):
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute("UPDATE dictations SET text = ? WHERE id = ? AND call_id = ?", (body.text, dictation_id, call_id))
+    return {"status": "ok"}
+
+
+@app.put("/api/calls/{call_id}/vitals/{vitals_id}")
+def edit_vitals(call_id: str, vitals_id: int, body: VitalsIn):
+    with get_conn() as conn:
+        _get_call_or_404(call_id, conn)
+        conn.execute(
+            "UPDATE vitals SET bp = ?, hr = ?, spo2 = ?, rr = ?, gcs = ?, glucose = ? WHERE id = ? AND call_id = ?",
+            (body.bp, body.hr, body.spo2, body.rr, body.gcs, body.glucose, vitals_id, call_id),
+        )
+    return {"status": "ok"}
 
 
 # ---------- Narrative draft + editing ----------

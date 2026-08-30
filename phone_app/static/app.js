@@ -8,6 +8,7 @@ const state = {
   lastTranscript: "",
   lastPhotoDataUrl: null,
   reportFormat: "standard",
+  editingVitalsId: null,
 };
 
 const ASSET_ICONS = { voice: "🎙️", vitals: "❤️", scribble: "✏️", photo: "📷" };
@@ -120,18 +121,70 @@ async function refreshAssets() {
     return;
   }
 
-  listEl.innerHTML = assets.map(a => `
-    <div class="asset-card">
+  listEl.innerHTML = assets.map(a => {
+    const canEdit = a.type === "voice" || a.type === "vitals";
+    return `
+    <div class="asset-card" data-type="${a.type}" data-id="${a.id}">
       <div class="asset-icon ${a.type}">${ASSET_ICONS[a.type]}</div>
       <div class="asset-body">
         <div class="asset-label-row">
           <div class="asset-label">${a.label}</div>
           <div class="asset-timestamp">${formatTimestamp(a.recorded_at)}</div>
         </div>
-        <div class="asset-detail">${(a.detail || "").slice(0, 60)}</div>
+        <div class="asset-detail">${escapeHtml((a.detail || "").slice(0, 60))}</div>
+      </div>
+      <div class="asset-actions">
+        ${canEdit ? '<button class="icon-btn asset-edit-btn" title="Edit">✏️</button>' : ""}
+        <button class="icon-btn asset-delete-btn" title="Delete">🗑</button>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
+
+  listEl.querySelectorAll(".asset-card").forEach(card => {
+    const type = card.dataset.type;
+    const id = card.dataset.id;
+    const asset = assets.find(a => a.type === type && String(a.id) === id);
+
+    const deleteBtn = card.querySelector(".asset-delete-btn");
+    deleteBtn.addEventListener("click", async () => {
+      if (!confirm(`Delete ${asset.label}? This can't be undone.`)) return;
+      await api(`/api/calls/${state.callId}/assets/${type}/${id}`, { method: "DELETE" });
+      await refreshAssets();
+    });
+
+    const editBtn = card.querySelector(".asset-edit-btn");
+    if (editBtn) {
+      editBtn.addEventListener("click", () => editAsset(type, id, asset));
+    }
+  });
+}
+
+async function editAsset(type, id, asset) {
+  if (type === "voice") {
+    const newText = prompt("Edit voice memo text:", asset.detail);
+    if (newText === null || !newText.trim()) return;
+    await api(`/api/calls/${state.callId}/dictations/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ text: newText.trim() }),
+    });
+    await refreshAssets();
+  } else if (type === "vitals") {
+    const call = await api(`/api/calls/${state.callId}`);
+    const row = call.vitals.find(v => String(v.id) === String(id));
+    if (!row) return;
+    const [sys, dia] = (row.bp || "/").split("/");
+    document.getElementById("v-sys").value = sys || "";
+    document.getElementById("v-dia").value = dia || "";
+    document.getElementById("v-hr").value = row.hr ?? "";
+    document.getElementById("v-spo2").value = row.spo2 ?? "";
+    document.getElementById("v-rr").value = row.rr ?? "";
+    document.getElementById("v-gcs").value = row.gcs ?? "";
+    document.getElementById("v-glucose").value = row.glucose ?? "";
+    state.editingVitalsId = id;
+    document.getElementById("save-vitals-btn").textContent = "Save Changes";
+    openModal("vitals");
+  }
 }
 
 function formatTimestamp(isoString) {
@@ -228,6 +281,8 @@ function resetModals() {
   ["v-sys", "v-dia", "v-hr", "v-spo2", "v-rr", "v-gcs", "v-glucose"].forEach(id => {
     document.getElementById(id).value = "";
   });
+  document.getElementById("save-vitals-btn").textContent = "Log Vitals";
+  state.editingVitalsId = null;
   document.getElementById("nc-complaint").value = "";
   document.getElementById("nc-age").value = "";
   document.getElementById("nc-sex").value = "";
@@ -253,17 +308,19 @@ function numOrNull(id) {
 document.getElementById("save-vitals-btn").addEventListener("click", async () => {
   const sys = document.getElementById("v-sys").value.trim();
   const dia = document.getElementById("v-dia").value.trim();
-  await api(`/api/calls/${state.callId}/vitals`, {
-    method: "POST",
-    body: JSON.stringify({
-      bp: (sys || dia) ? `${sys}/${dia}` : null,
-      hr: numOrNull("v-hr"),
-      spo2: numOrNull("v-spo2"),
-      rr: numOrNull("v-rr"),
-      gcs: numOrNull("v-gcs"),
-      glucose: numOrNull("v-glucose"),
-    }),
+  const body = JSON.stringify({
+    bp: (sys || dia) ? `${sys}/${dia}` : null,
+    hr: numOrNull("v-hr"),
+    spo2: numOrNull("v-spo2"),
+    rr: numOrNull("v-rr"),
+    gcs: numOrNull("v-gcs"),
+    glucose: numOrNull("v-glucose"),
   });
+  if (state.editingVitalsId) {
+    await api(`/api/calls/${state.callId}/vitals/${state.editingVitalsId}`, { method: "PUT", body });
+  } else {
+    await api(`/api/calls/${state.callId}/vitals`, { method: "POST", body });
+  }
   closeModal();
   await refreshAssets();
 });

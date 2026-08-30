@@ -255,6 +255,8 @@ body {
   flex-shrink: 0;
 }
 .asset-card .asset-detail { font-size: 11px; color: var(--gray); margin-top: 1px; }
+.asset-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.asset-actions .icon-btn { width: 26px; height: 26px; font-size: 12px; }
 
 .empty-state { text-align: center; padding: 40px 20px; color: var(--gray); }
 .plus-circle {

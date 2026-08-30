@@ -48,6 +48,14 @@ call, click **Load Auto-Draft** to see the narrative assembled from the
 captured vitals/timestamps/dictation, then try typing in the narrative box —
 a gray suggestion should appear inline; press **Tab** to accept it.
 
+The **Format** dropdown next to Load Auto-Draft picks how that draft is
+organized: **Standard** (the original free-form narrative), **SOAP**
+(Subjective/Objective/Assessment/Plan), or **CHART** (Chief Complaint/
+History/Assessment/Rx/Transport) — both are standard EMS documentation
+methods some systems require for consistency across a crew. All three
+draw on the same captured data, just organized differently within the
+one narrative textarea.
+
 ### Enabling real AI suggestions
 
 Without an API key, ghost-text suggestions fall back automatically to a

@@ -151,6 +151,9 @@ function resetModals() {
   document.getElementById("photo-preview").style.display = "none";
   document.getElementById("photo-input").value = "";
   document.getElementById("save-photo-btn").disabled = true;
+  ["v-sys", "v-dia", "v-hr", "v-spo2", "v-rr", "v-gcs", "v-glucose"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
   state.lastTranscript = "";
   state.lastPhotoDataUrl = null;
   if (state.isRecording) stopVoiceRecording();
@@ -165,18 +168,23 @@ document.querySelectorAll("[data-close-modal]").forEach(btn => {
 
 // --- Vitals ---
 
+function numOrNull(id) {
+  const raw = document.getElementById(id).value.trim();
+  return raw === "" ? null : Number(raw);
+}
+
 document.getElementById("save-vitals-btn").addEventListener("click", async () => {
-  const sys = document.getElementById("v-sys").value;
-  const dia = document.getElementById("v-dia").value;
+  const sys = document.getElementById("v-sys").value.trim();
+  const dia = document.getElementById("v-dia").value.trim();
   await api(`/api/calls/${state.callId}/vitals`, {
     method: "POST",
     body: JSON.stringify({
-      bp: `${sys}/${dia}`,
-      hr: Number(document.getElementById("v-hr").value),
-      spo2: Number(document.getElementById("v-spo2").value),
-      rr: Number(document.getElementById("v-rr").value),
-      gcs: Number(document.getElementById("v-gcs").value),
-      glucose: Number(document.getElementById("v-glucose").value),
+      bp: (sys || dia) ? `${sys}/${dia}` : null,
+      hr: numOrNull("v-hr"),
+      spo2: numOrNull("v-spo2"),
+      rr: numOrNull("v-rr"),
+      gcs: numOrNull("v-gcs"),
+      glucose: numOrNull("v-glucose"),
     }),
   });
   closeModal();

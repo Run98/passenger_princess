@@ -270,9 +270,25 @@ body {
 .modal.active { display: block; }
 .modal h3 { margin-top: 0; }
 
-.vitals-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
-.vitals-grid label { font-size: 12px; color: var(--gray); display: flex; flex-direction: column; gap: 4px; }
+.vitals-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+  min-width: 0;
+}
+.vitals-grid label {
+  font-size: 12px;
+  color: var(--gray);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
 .vitals-grid input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
